@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import './App.css';
 import profilePic from "./images/profile.jpg";
-// import axios from 'axios';
+import axios from 'axios';
 import moment from 'moment';
 import { initializeApp } from "firebase/app";
 import {
@@ -32,8 +32,8 @@ function App() {
   const [postText, setPostText] = useState("");
   const [posts, setPosts] = useState([]);
   const [editing, setEditing] = useState(null);
-  const [editing2, setEditing2] = useState(null);
   const [editingText, setEditingText] = useState(null);
+  const [image, setImage] = useState(null);
   // const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -66,17 +66,27 @@ function App() {
     if(postText === ""){
         alert("Fill some text");
     }else{
-      try {
-        const docRef = await addDoc(collection(db, "posts"), {
-          text: postText,
-          createdOn: serverTimestamp(),
-          // createdOn: new Date().getTime(),
-          // postId: id
-        });
-        console.log("Document written with ID: ", docRef.id);
-      } catch (e) {
-        console.error("Error adding document: ", e);
-      }
+      const cloudinaryData = new FormData();
+                cloudinaryData.append("file", image);
+                cloudinaryData.append("upload_preset", "create-posts images")
+                cloudinaryData.append("cloud_name", "dwfzx0tds")
+                axios.post(`https://api.cloudinary.com/v1_1/dwfzx0tds/image/upload`, cloudinaryData, { headers: { 'Content-Type': 'multipart/form-data' } })
+                    .then(async res => {
+                      try {
+                        const docRef = await addDoc(collection(db, "posts"), {
+                          text: postText,
+                          createdOn: serverTimestamp(),
+                          // createdOn: new Date().getTime(),
+                          // postId: id
+                          img: res?.data?.url
+                        });
+                        console.log("Document written with ID: ", docRef.id);
+                      } catch (e) {
+                        console.error("Error adding document: ", e);
+                      }
+                    })
+
+      
     }
     
   }
@@ -88,9 +98,7 @@ function App() {
       text: updatedText
     });
   };
-const edit2 = (postId)=> {
-  setEditing2(postId)
-}
+
 
   const viewOptions = (e) => {
     console.log(e)
@@ -116,6 +124,9 @@ const edit2 = (postId)=> {
             setPostText(e.target.value)
           }}
         />
+        <div className='button'>
+            <input type="file" id='image' onChange={(e) => { setImage(e.currentTarget.files[0]) }} />
+        </div>
         <button type="submit">post</button>
       </form>
       </div>
@@ -141,7 +152,7 @@ const edit2 = (postId)=> {
                 </span>
               </div>
               </div>
-              {/* <span className="post-options"  onClick={() =>{viewOptions(eachPost)}}>g
+              <span className="post-options"  onClick={() =>{viewOptions(eachPost)}}>g
               <div className="options-box">
                 <span className="option" onClick={()=> {
                 deletePost(eachPost?.id);
@@ -157,9 +168,9 @@ const edit2 = (postId)=> {
                 setPosts(updatedState)
                 }}>edit</span>
               </div>
-              </span> */}
+              </span>
             </div>
-            {/* <h3>{(eachPost.isEditing) ? 
+            <h3>{(eachPost.isEditing) ? 
             <div>
               <form >
               <input type="text" value={editingText}
@@ -171,36 +182,20 @@ const edit2 = (postId)=> {
               </form>
               <button onClick={(postId)=> {
                 setEditing(postId)
-                const updatedState = posts.map(eachItem => {
-                  if(eachItem?.id === eachPost?.id){
-                    return {...eachItem, isEditing: !eachItem.isEditing}
-                  }else{
-                    return eachItem
-                  }
-                })
-                setPosts(updatedState)
+                // const updatedState = posts.map(eachItem => {
+                //   if(eachItem?.id === eachPost?.id){
+                //     return {...eachItem, isEditing: !eachItem.isEditing}
+                //   }else{
+                //     return eachItem
+                //   }
+                // })
+                // setPosts(updatedState)
               }}>ok</button>
               </div>:
             eachPost?.text}
-            </h3> */}
-            <h3>
-              {
-                (eachPost.id === editing2) ? 
-                <form>
-                  <input type="text" value={eachPost.text}/>
-                </form>
-                : eachPost?.text
-              }
             </h3>
-            <div className="buttons">
-              <button onClick={()=> {
-                deletePost(eachPost?.id);
-                }}>delete</button>
-              <button onClick={()=>{
-                edit2();
+            <img className="post-img" src={eachPost?.img} alt="" />
 
-              }}>Edit</button>
-            </div>
 
 
              
